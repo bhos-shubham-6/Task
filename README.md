@@ -1,36 +1,126 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Private Knowledge Q&A – Mini Workspace
 
-## Getting Started
+This is a small full‑stack web app (Next.js + TypeScript) for the **Private Knowledge Q&A** task.
 
-First, run the development server:
+You can:
+
+- Add plain‑text documents to a private workspace.
+- See a list of uploaded documents.
+- Ask a question.
+- Get an answer that uses your documents as context.
+- See which document snippets were used to answer (document + passage).
+
+There is also a **Status** page showing the health of:
+
+- Backend API
+- Document store (file‑based)
+- LLM configuration (OpenAI env vars)
+
+---
+
+## How to run locally
+
+### 1. Install dependencies
+
+```bash
+cd private-qa-app
+npm install
+```
+
+### 2. Configure environment variables
+
+Create a file called `.env.local` in the project root and add:
+
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+> Do **not** commit `.env.local` to GitHub.
+
+### 3. Start the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## App walkthrough
 
-## Learn More
+- **Home page (`/`)**
+  - Step 1: Add documents (title + text content).
+  - Step 2: Ask a question.
+  - Shows answer and the specific source snippets used.
 
-To learn more about Next.js, take a look at the following resources:
+- **Status page (`/status`)**
+  - Shows backend availability.
+  - Checks that the docs store is readable.
+  - Shows whether the LLM client is configured (based on env vars).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The document store is a simple JSON file under a `data/` folder on disk, suitable for local/demo usage.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Production / deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Option A – Vercel (recommended for Next.js)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Push this folder to a GitHub repo.
+2. In Vercel, import the repo as a new project.
+3. Set environment variables in the Vercel dashboard:
+   - `OPENAI_API_KEY`
+   - `OPENAI_MODEL` (optional; default is `gpt-4.1-mini`)
+
+> Note: Vercel’s runtime filesystem is not ideal for persistent file storage. For a long‑lived demo, prefer a host with a persistent volume or modify the app to use a database.
+
+### Option B – Docker (one‑command run)
+
+This repo includes a simple `Dockerfile`.
+
+Build the image:
+
+```bash
+docker build -t private-qa-app .
+```
+
+Run the container (pass your OpenAI key at runtime):
+
+```bash
+docker run -p 3000:3000 \
+  -e OPENAI_API_KEY=your_openai_api_key_here \
+  -e OPENAI_MODEL=gpt-4.1-mini \
+  private-qa-app
+```
+
+Then open `http://localhost:3000`.
+
+For persistent documents, you can mount a volume at `/app/data`:
+
+```bash
+docker run -p 3000:3000 \
+  -e OPENAI_API_KEY=your_openai_api_key_here \
+  -v ./data:/app/data \
+  private-qa-app
+```
+
+---
+
+## What is done vs not done
+
+- **Done**
+  - Document upload + listing.
+  - Q&A endpoint using OpenAI (with basic snippet selection).
+  - Answer + “where it came from” (document title + passage).
+  - Status page (backend, docs store, LLM env).
+  - Basic handling of empty questions / missing documents / missing API key / quota errors.
+  - Dockerfile for production build.
+
+- **Not done / possible extensions**
+  - No authentication or multi‑user separation.
+  - No database; docs are stored in a local JSON file.
+  - No advanced retrieval (e.g., embeddings/vector search).
+  - No tests.
+
