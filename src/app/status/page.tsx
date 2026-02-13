@@ -1,20 +1,42 @@
-async function fetchStatus() {
-  try {
-    const res = await fetch("/api/status", {
-      cache: "no-store",
-    });
-    if (!res.ok) {
-      throw new Error(`Status request failed: ${res.status}`);
-    }
-    return res.json();
-  } catch (error) {
-    console.error("Failed to fetch status", error);
-    return null;
-  }
-}
+ "use client";
 
-export default async function StatusPage() {
-  const status = await fetchStatus();
+import { useEffect, useState } from "react";
+
+type StatusResponse = {
+  timestamp: string;
+  checks: {
+    backend: { ok: boolean; message: string };
+    database: { ok: boolean; message: string };
+    llm: { ok: boolean; message: string };
+  };
+};
+
+export default function StatusPage() {
+  const [status, setStatus] = useState<StatusResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch("/api/status");
+        if (!res.ok) {
+          throw new Error(`Status request failed: ${res.status}`);
+        }
+        const data = (await res.json()) as StatusResponse;
+        setStatus(data);
+      } catch (err) {
+        console.error("Failed to fetch status", err);
+        setError("Could not load status from the backend.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void run();
+  }, []);
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
@@ -37,10 +59,13 @@ export default async function StatusPage() {
           </a>
         </header>
 
-        {!status ? (
+        {loading ? (
+          <div className="rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-3 text-xs text-zinc-600">
+            Checking system status...
+          </div>
+        ) : error || !status ? (
           <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700">
-            Could not load status from the backend. Make sure the dev server is
-            running.
+            {error ?? "Could not load status from the backend. Make sure the server is running."}
           </div>
         ) : (
           <div className="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-zinc-100">
